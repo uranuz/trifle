@@ -1,0 +1,9 @@
+{
+	"authors": [
+		"uranuz"
+	],
+	"copyright": "Copyright © 2020, uranuz",
+	"description": "Utility library for ivy and webtank",
+	"license": "proprietary",
+	"name": "trifle"
+}

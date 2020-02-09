@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/trifle
+trifle.so
+trifle.dylib
+trifle.dll
+trifle.a
+trifle.lib
+trifle-test-*
+*.exe
+*.o
+*.obj
+*.lst
