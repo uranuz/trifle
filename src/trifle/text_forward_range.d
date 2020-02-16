@@ -1,9 +1,8 @@
 module trifle.text_forward_range;
 
-import std.range;
-import std.traits;
-
-import trifle.location;
+import trifle.location: LocationConfig, IndentStyle;
+import std.traits: isSomeString, Unqual;
+import std.range: isInputRange, isForwardRange, ElementEncodingType;
 
 struct TextForwardRange(S, LocationConfig c = LocationConfig.init)
 	if( isSomeString!S )
@@ -322,12 +321,17 @@ public:
 
 	auto opSlice(size_t start, size_t end) const
 	{
-		import std.conv;
+		import std.conv: text;
+		import std.exception: enforce;
 
 		size_t newEndIndex = this.index + end;
 
-		assert( start <= str.length, "Slice start index: " ~ start.to!string ~ " out of bounds: [ 0, " ~ str.length.to!string ~ " )"  );
-		assert( newEndIndex <= str.length, "Slice end index: " ~ newEndIndex.to!string ~ " out of bounds: [ 0, " ~ str.length.to!string ~ " )" );
+		enforce(
+			start <= str.length,
+			"Slice start index: " ~ start.text ~ " out of bounds: [0, " ~ str.length.text ~ ")");
+		enforce(
+			newEndIndex <= str.length,
+			"Slice end index: " ~ newEndIndex.text ~ " out of bounds: [0, " ~ str.length.text ~ ")");
 		auto thisSlice = this.save;
 
 		thisSlice.popFrontN(start); //Call this in order to get valid lineIndex, graphemeIndex, etc.
@@ -480,13 +484,15 @@ auto byLine(Range)(auto ref Range range)
 
 enum dchar replacementChar = 0xFFFD;
 
-bool isStartCodeUnit(char ch)
-{
+bool isStartCodeUnit(char ch) {
 	return (ch & 0b1100_0000) != 0b1000_0000;
 }
 
-bool isStartCodeUnit(dchar ch)
-{
+bool isStartCodeUnit(wchar ch) {
+	return ch < 0xDC00 || ch > 0xDFFF;
+}
+
+bool isStartCodeUnit(dchar ch) {
 	return true;
 }
 
@@ -519,7 +525,10 @@ ubyte frontUnitLength(SourceRange)(ref const(SourceRange) input)
 	}
 	else static if( is( Char == wchar ) )
 	{
-		static assert( false, "Wchar is not supported yet!" );
+		if( ch < 0xD800 || ch > 0xDFFF )
+			return 1;
+		else
+			return 2;
 	}
 	else static if( is( Char == dchar ) )
 	{
@@ -538,40 +547,68 @@ dchar decodeFront(SourceRange)(ref const(SourceRange) input)
 
 	static if( is( Char == char ) )
 	{
-		import std.typetuple: TypeTuple;
-		static immutable(char)[4] firstByteMasks = [ 0b0111_1111, 0b0001_1111, 0b0000_1111, 0b0000_0111 ];
+		static immutable(char)[4] firstByteMasks = [
+			0b0111_1111,
+			0b0001_1111,
+			0b0000_1111,
+			0b0000_0111
+		];
 		auto textRange = input.save;
+		if( textRange.empty )
+			return '\0';
 
-		ubyte length = frontUnitLength(input);
+		ubyte seqLen = frontUnitLength(input);
 
-		assert( 0 < length && length <= 4, `Char code unit length must be in range [1; 4]!!!` );
-
-		if( length == 0 )
+		if( seqLen == 0 || seqLen > 4 )
 			return replacementChar;
 
-		Char ch = textRange.front;
-		dchar result = 0;
-		result |= ch & firstByteMasks[length-1];
+		dchar result = textRange.front & firstByteMasks[seqLen-1];
+		textRange.popFront();
 
-		foreach( i; TypeTuple!(1,2,3) )
+		if( seqLen == 1 )
+			return result;
+
+		foreach( i; 0..seqLen-1 )
 		{
-			if( i >= length )
-				break;
-
-			textRange.popFront();
 			if( textRange.empty )
 				return replacementChar;
-			ch = textRange.front;
+
+			// All continuation bytes must satisfy mask 10xxxxxx
+			if( (textRange.front & 0b1100_0000) != 0b1000_0000 )
+				return replacementChar;
 
 			result <<= 6;
-			result |= (ch & 0x3F);
+			result |= (textRange.front & 0b0011_1111);
+			textRange.popFront();
 		}
 
 		return result;
 	}
 	else static if( is( Char == wchar ) )
 	{
-		static assert( false, "Wchar character type is not supported yet!" );
+		auto textRange = input.save;
+		if( textRange.empty )
+			return '\0';
+
+		Char ch1 = textRange.front;
+		// Values outside of `private` range are taken as is
+		if( ch1 < 0xD800 || ch1 > 0xDFFF )
+			return ch;
+
+		// Value of first surrogate must between 0xD800 and 0xDBFF (first 10 bits)
+		if( ch1 > 0xDBFF )
+			return replacementChar;
+
+		// Second value of surrogate pair is required
+		if( textRange.empty )
+			return replacementChar;
+
+		Char ch2 = textRange.front;
+		// Value of second surrogate must between 0xDC00 and 0xDFFF (second 10 bits)
+		if( ch2 < 0xDC00 || ch2 > 0xDFFF )
+			return replacementChar;
+
+		return ((ch1 & 1023) << 10) + (ch2 & 1023);
 	}
 	else static if( is( Char == dchar ) )
 	{
