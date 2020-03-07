@@ -108,6 +108,7 @@ private:
 
 	void _checkEndQuote()
 	{
+		import trifle.parse_utils: empty, front, popFront;
 		enf(!_src.empty, `Unexpected finish of quoted string`);
 		// We shall test if the next char is quout and consume it
 		if( _src.front == _quot )
@@ -119,6 +120,7 @@ private:
 
 	Char _parseEscaped()
 	{
+		import trifle.parse_utils: empty, front, popFront;
 		enf(!_src.empty, `Expected escaped sequence, but got end of input`);
 		// We have got an escaped character
 		Char ch = _src.front;
