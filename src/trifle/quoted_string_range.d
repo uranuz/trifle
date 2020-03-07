@@ -18,7 +18,8 @@ private:
 	SourceRange _src;
 	UEscRange _uRange;
 	Char _quot;
-	Char _frontChar;
+	Char _frontChar = '\0';
+	bool _finished = false;
 
 public:
 	@disable this(this);
@@ -33,11 +34,14 @@ public:
 		_quot = _src.front;
 		_src.popFront(); // Skip quote
 		enf(Quotes.canFind(_quot), `Quoted string should start with a quote`);
-		if( !_isEmptyRange ) {
-			this.popFront();
+		
+		_checkEndQuote();
+		if( !_finished ) {
+			this.popFront(); // Parse the first character
 		}
 	}
 
+	/// Copy constructor
 	this(ref return scope inout(QuotRange) rhs) inout
 	{
 		import trifle.parse_utils: save;
@@ -45,43 +49,38 @@ public:
 		this._uRange = rhs._uRange.save;
 		this._quot = rhs._quot;
 		this._frontChar = rhs._frontChar;
+		this._finished = rhs._finished;
 	}
 
+	/// Range empty primitive
 	bool empty() @property {
-		return _frontChar == '\0';
+		return _frontChar == '\0' && _finished;
 	}
 
+	/// Range front primitive
 	Char front() @property {
 		return _frontChar;
 	}
 
+	/// Range popFront primitive
 	void popFront() {
 		_frontChar = _parseFront();
 	}
 
+	/// Range save primitive
 	auto save() @property {
 		return typeof(this)(this);
 	}
 
-	// De-facto standard property to get underlying range
+	// Returns underlying range at it's current state
 	SourceRange source() @property {
 		return _src;
 	}
 
 private:
-	bool _isEmptyRange() @property
-	{
-		import trifle.parse_utils: empty, front;
-		return (_src.empty || _src.front == _quot) && _uRange.empty;
-	}
-
 	Char _parseFront()
 	{
 		import trifle.parse_utils: empty, front, popFront;
-
-		if( this._isEmptyRange ) {
-			return '\0';
-		}
 
 		if( !_uRange.empty )
 		{
@@ -91,15 +90,39 @@ private:
 			return ures;
 		}
 
+		if( _finished )
+		{
+			enf(_frontChar != '\0', `Attempt to push forward an empty range`);
+			return '\0';
+		}
+
+		enf(!_src.empty, `Unexpected end of quoted string`);
 		Char ch = _src.front;
 		_src.popFront(); // Skip character
-		if( ch != '\\' ) {
-			return ch;
+
+		ch = (ch == '\\'? _parseEscaped(): ch);
+
+		_checkEndQuote();
+		return ch;
+	}
+
+	void _checkEndQuote()
+	{
+		enf(!_src.empty, `Unexpected finish of quoted string`);
+		// We shall test if the next char is quout and consume it
+		if( _src.front == _quot )
+		{
+			_src.popFront(); // Drop quot
+			_finished = true; // Set state that we have done with this escaped string
 		}
-		enf(!_src.empty, `Expected escaped sequence`);
+	}
+
+	Char _parseEscaped()
+	{
+		enf(!_src.empty, `Expected escaped sequence, but got end of input`);
 		// We have got an escaped character
-		ch = _src.front;
-		_src.popFront(); // Skip character
+		Char ch = _src.front;
+		_src.popFront(); // Skip this character
 		switch( ch )
 		{
 			case 'u':
@@ -123,13 +146,4 @@ private:
 		// Regular symbol is being escaped...
 		return ch;
 	}
-}
-
-
-unittest
-{
-	import std.algorithm: equal;
-	string aaa1 = `"vasya\"petya\\new\tdimension" rest of range...`;
-	string aaa2 = "\"vasya\"petya\\new\tdimension\" rest of range...";
-	auto rng = QuotedStringRange!string(`"vasya\"petya\\new\tdimension" rest of range...`);
 }
