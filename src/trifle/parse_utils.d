@@ -14,7 +14,7 @@ bool isStartCodeUnit(dchar ch) {
 	return true;
 }
 
-public import std.range: empty, popFront, save;
+public import std.range: empty, save;
 import std.traits: isSomeString, Unqual;
 import std.range: isInputRange, isForwardRange, ElementEncodingType;
 
@@ -23,6 +23,13 @@ import std.range: isInputRange, isForwardRange, ElementEncodingType;
 {
 	assert(a.length, "Attempting to fetch the front of an empty array of " ~ T.stringof);
 	return a[0];
+}
+
+void popFront(T)(scope ref inout(T)[] a) @safe pure nothrow @nogc
+	if( isSomeString!(T[]) )
+{
+	assert(a.length, "Attempting to popFront() past the end of an array of " ~ T.stringof);
+	a = a[1 .. $];
 }
 
 ubyte frontUnitLength(SourceRange)(ref const(SourceRange) input)
@@ -65,10 +72,6 @@ ubyte frontUnitLength(SourceRange)(ref const(SourceRange) input)
 	}
 	else
 		static assert( false, "Unsupported character type!" );
-}
-
-void ass(B, S)(B cond, S s) {
-	assert(cond, s);
 }
 
 dchar decodeFront(SourceRange)(ref const(SourceRange) input)

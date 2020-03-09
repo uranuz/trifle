@@ -140,7 +140,7 @@ private:
 				break;
 			}
 			// Generate cases for special escape sequences...
-			static foreach( Char esc; `bfnrtv0` ) {
+			static foreach( Char esc; `abfnrtv0` ) {
 				mixin(`case '` ~ esc ~ `': return '\` ~ esc ~ `';`);
 			}
 			default: break;
