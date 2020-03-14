@@ -134,7 +134,7 @@ dchar decodeFront(SourceRange)(ref const(SourceRange) input)
 		textRange.popFront();
 		enf(0xDC00 <= ch2 && ch2 <= 0xDFFF, `Value of second surrogate must between 0xDC00 and 0xDFFF (second 10 bits)`);
 
-		return ((ch1 & 1023) << 10) + (ch2 & 1023);
+		return ((ch1 & 1023) << 10) + (ch2 & 1023) + 0x10000;
 	}
 	else static if( is( Char == dchar ) )
 	{
