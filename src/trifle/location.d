@@ -22,6 +22,13 @@ struct Location
 	size_t length;    // Length of source text in code units or in graphemes (if available)
 	size_t indentCount;
 	IndentStyle indentStyle;
+
+	string toString()
+	{
+		import std.conv: text;
+
+		return fileName ~ ` [` ~ index.text ~ ` .. ` ~ (index + length).text ~ `]`;
+	}
 }
 
 struct PlainLocation
@@ -29,6 +36,13 @@ struct PlainLocation
 	string fileName;
 	size_t lineIndex;
 	size_t columnIndex;
+
+	string toString()
+	{
+		import std.conv: text;
+
+		return fileName ~ `:` ~ lineIndex.text ~ `:` ~ columnIndex.text;
+	}
 }
 
 struct ExtendedLocation
@@ -44,6 +58,13 @@ struct ExtendedLocation
 	size_t graphemeColumnIndex; // Index of grapheme in line that starts element
 	size_t indentCount; // Line indent count for element
 	IndentStyle indentStyle; // Determines if element indented with tabs or spaces
+
+	string toString()
+	{
+		import std.conv: text;
+
+		return fileName ~ `:` ~ lineIndex.text ~ `:` ~ graphemeColumnIndex.text;
+	}
 }
 
 struct CustomizedLocation(LocationConfig c)
@@ -153,5 +174,4 @@ struct CustomizedLocation(LocationConfig c)
 
 		return loc;
 	}
-
 }
