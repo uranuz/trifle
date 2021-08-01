@@ -1,0 +1,36 @@
+{
+  "name": "trifle",
+  "version": "0.0.1",
+  "description": "Utility library for uranuz's projects",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uranuz/trifle.git"
+  },
+  "keywords": [
+    "trifle",
+    "utility"
+  ],
+  "author": "uranuz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/uranuz/trifle/issues"
+  },
+  "homepage": "https://github.com/uranuz/trifle#readme",
+  "devDependencies": {
+    "css-loader": "^6.2.0",
+    "file-loader": "^6.2.0",
+    "gulp": "^4.0.2",
+    "gulp-clean": "^0.4.0",
+    "gulp-util": "^3.0.8",
+    "is-glob": "^4.0.1",
+    "mini-css-extract-plugin": "^2.1.0",
+    "node-sass": "^6.0.1",
+    "sass-loader": "^12.1.0",
+    "webpack": "^5.46.0",
+    "yargs": "^17.0.1"
+  }
+}

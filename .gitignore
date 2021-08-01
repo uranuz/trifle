@@ -13,3 +13,5 @@ trifle-test-*
 *.o
 *.obj
 *.lst
+node_modules
+package-lock.json
