@@ -19,10 +19,11 @@ var
  */
 
 function makeConfig(config) {
+	var wpCfg = config.webpack;
 	var bootstrapSass = path.resolve(config.buildPath, 'node_modules/bootstrap/scss');
 	var wpEntries = {};
 
-	Object.entries(config.webpack.entries).forEach(function(entry) {
+	Object.entries(wpCfg.entries).forEach(function(entry) {
 		wpEntries[entry[0]] = resolveGlobs(entry[1]);
 	});
 
@@ -60,15 +61,10 @@ function makeConfig(config) {
 		},
 		{
 			test: /\.(png|jpe?g|gif|svg)$/,
-			use: [
-				{
-					loader: 'file-loader',
-					options: {
-						name: '[path][name].[ext]',
-						publicPath: config.publicPath
-					}
-				}
-			]
+			type: 'asset/resource',
+			generator: {
+				filename: '[file]'
+			}
 		}
 	];
 	// Add basic plugins
@@ -76,7 +72,7 @@ function makeConfig(config) {
 		// This plugin says that we need
 		new webpack.DllPlugin({
 			name: '[name]',
-			path: path.join(config.manifestsPath, '[name].manifest.json'),
+			path: path.join(wpCfg.manifestsPath, '[name].manifest.json'),
 			format: true
 		}),
 		new MiniCssExtractPlugin({
@@ -87,7 +83,7 @@ function makeConfig(config) {
 		})
 	];
 	// Add plugins to resolve dependencies from other libraries
-	addExtLibPlugins(plugins, config.extLibs, config.libraryTarget);
+	addExtLibPlugins(plugins, wpCfg);
 
 	return {
 		context: config.buildPath,
@@ -105,9 +101,7 @@ function makeConfig(config) {
 			symlinks: false
 		},
 		resolveLoader: {
-			modules: [path.join(config.buildPath, 'node_modules')],
-			//extensions: ['.js', '.json'],
-			//mainFields: ['loader', 'main'],
+			modules: [path.join(config.buildPath, 'node_modules')]
 		},
 		module: {
 			rules: rules
@@ -118,22 +112,22 @@ function makeConfig(config) {
 			path: config.outPub,
 			publicPath: config.publicPath,
 			filename: '[name].js',
-			libraryTarget: config.libraryTarget,
+			libraryTarget: wpCfg.libraryTarget,
 			library: '[name]'
 		}
 	};
 }
 
-function addExtLibPlugins(plugins, extLibs, libraryTarget) {
-	if (!extLibs || !extLibs.length) {
+function addExtLibPlugins(plugins, wpCfg) {
+	if (!wpCfg.extLibs || !wpCfg.extLibs.length) {
 		return;
 	}
-	extLibs.forEach(function(extLib) {
-		var manifestPath = path.join(manifestsPath, extLib + '.manifest.json');
+	wpCfg.extLibs.forEach(function(extLib) {
+		var manifestPath = path.join(wpCfg.manifestsPath, extLib + '.manifest.json');
 		var mainfest = require(manifestPath);
 		plugins.push(new webpack.DllReferencePlugin({
 			manifest: mainfest,
-			sourceType: libraryTarget
+			sourceType: wpCfg.libraryTarget
 		}));
 	});
 }

@@ -35,13 +35,6 @@ function BuilderConfig(argv) {
 		console.warn('--outTemplates is not set, so using default value: ' + this.outTemplates);
 	}
 
-	if( argv.manifestsPath ) {
-		this.manifestsPath = argv.manifestsPath
-	} else {
-		this.manifestsPath = path.join(this.outPub, 'manifest/');
-		console.warn('--manifestsPath is not set, so using default value: ' + this.manifestsPath);
-	}
-
 	if( argv.buildPath ) {
 		this.buildPath = argv.buildPath;
 	} else {
@@ -61,11 +54,14 @@ function BuilderConfig(argv) {
 
 	this.dependGulpFiles = [];
 
-	this.webpack = {
-		entries: {},
-		libraryTarget: 'window',
-		extLibs: []
-	};
+	this.webpack = new WebpackConfig();
+
+	if( argv.manifestsPath ) {
+		this.webpack.manifestsPath = argv.manifestsPath
+	} else {
+		this.webpack.manifestsPath = path.join(this.outPub, 'manifest/');
+		console.warn('--manifestsPath is not set, so using default value: ' + this.webpack.manifestsPath);
+	}
 
 	// Paths or globs that should be symlinked to build directory
 	this.symlinkBuildPaths = [];
@@ -76,6 +72,19 @@ function BuilderConfig(argv) {
 	this.symlinkTemplatesPaths = [];
 }
 
+function WebpackConfig() {
+	// Dict <entry point name> -> <list of modules>
+	this.entries = {};
+
+	// List of external webpack libraries, used in this webpack build
+	this.extLibs = [];
+
+	// Kind of storage for webpack libraries
+	this.libraryTarget = 'window';
+
+	// Path for storing manifests for webpack libs
+	this.manifestsPath = null
+}
 
 function resolveConfig() {
 	var config = new BuilderConfig(yargs.argv);
