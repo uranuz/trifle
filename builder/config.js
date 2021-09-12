@@ -72,6 +72,7 @@ function BuilderConfig(argv) {
 
 	// Paths or globs that should be symlinked to output directory
 	this.symlinkPubPaths = [];
+	// Paths or globs that should be symlinked to template resources directory
 	this.symlinkTemplatesPaths = [];
 }
 

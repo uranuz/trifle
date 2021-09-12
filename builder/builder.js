@@ -11,6 +11,49 @@ var
 	tfWebpack = require('./webpack');
 
 
+function makeTasks(config) {
+	// Create bundles then add nonexisting files as symlinks...
+
+	var allTasks = [];
+	// First of all add clean tasks..
+	if (config.cleanPaths.length) {
+		allTasks.push(cleanTask.bind(null, config));
+	}
+
+	// Add dependent gulp tasks before doing tasks of this config
+	if (config.dependGulpFiles.length) {
+		allTasks.push(gulp.series(config.dependGulpFiles.map(function(filePath) {
+			return dependGulpTask.bind(null, config, filePath)
+		})));
+	}
+
+	// After clean we shall symlink required files to build directory
+	if (config.symlinkBuildPaths.length) {
+		allTasks.push(symlinkBuildTask.bind(null, config))
+	}
+
+	allTasks.push(symlinkBuildNodeModulesTask.bind(null, config));
+
+	allTasks.push(ivyJSBuilderTask.bind(null, config));
+
+	// Add webpack task
+	if (Object.keys(config.webpack.entries).length) {
+		allTasks.push(webpackTask.bind(null, config));
+	}
+
+	// After finishing build we shall symlink result to pub path
+	if (config.symlinkPubPaths.length) {
+		allTasks.push(symlinkPubTask.bind(null, config));
+	}
+
+	if (config.symlinkTemplatesPaths.length) {
+		allTasks.push(symlinkTemplatesTask.bind(null, config));
+	}
+
+	//allTasks.push(symlinkBootstrapTask.bind(config));
+
+	return gulp.series(allTasks);
+}
 
 function cleanTask(config) {
 	return gulp.src(config.cleanPaths, {
@@ -55,17 +98,17 @@ function symlinkBuildNodeModulesTask(config) {
 	}));
 }
 
-function setBuildCwdTask(config, cb) {
-	console.warn('Switch working dir to build: ', config.buildPath);
-	process.chdir(config.buildPath);
-	cb();
-}
-
 function ivyJSBuilderTask(config, cb) {
-	exec(
-		'/home/uranuz/projects/yar_mkk/ivy/bin/ivy_js_builder --sourcePath="' + config.outTemplates + '/fir" --outPath="' + config.outPub + '-ivy"',
-		{
-			//cwd: path.resolve(config.outTemplates) // Set current working dir
+	child_process.execFile(
+		'/usr/bin/dub', [
+			'run',
+			':js_builder',
+			'--',
+			'--sourcePath=' + config.buildPath,
+			'--outPath=' + config.buildAuxPath,
+			'--basePath=' + config.buildPath
+		], {
+			cwd: path.resolve('/home/uranuz/projects/yar_mkk/ivy') // Set current working dir
 		},
 		_handleExecResult.bind(null, cb)
 	);
@@ -78,10 +121,8 @@ function _handleExecResult(cb, err, stdout, stderr) {
 }
 
 function webpackTask(config, cb) {
-
 	webpack(tfWebpack.makeConfig(config), handleWebpackResult.bind(null, cb));
 };
-
 
 function handleWebpackResult(cb, err, stats) {
 	if (err) {
@@ -102,59 +143,12 @@ function symlinkPubTask(config) {
 	.pipe(vfs.symlink(config.outPub));
 };
 
-
-function makeTasks(config) {
-	// Create bundles then add nonexisting files as symlinks...
-
-	var allTasks = [];
-	// First of all add clean tasks..
-	if (config.cleanPaths.length) {
-		allTasks.push(cleanTask.bind(null, config));
-	}
-
-	// Add dependent gulp tasks before doing tasks of this config
-	if (config.dependGulpFiles.length) {
-		allTasks.push(gulp.series(config.dependGulpFiles.map(function(filePath) {
-			return dependGulpTask.bind(null, config, filePath)
-		})));
-	}
-
-	// After clean we shall symlink required files to build directory
-	if (config.symlinkBuildPaths.length) {
-		allTasks.push(symlinkBuildTask.bind(null, config))
-	}
-
-	//allTasks.push(setBuildCwdTask.bind(null, config));
-
-	allTasks.push(symlinkBuildNodeModulesTask.bind(null, config));
-
-	// Add webpack task
-	if (Object.keys(config.webpack.entries).length) {
-		allTasks.push(webpackTask.bind(null, config));
-	}
-	
-	
-
-	// After finishing build we shall symlink result to pub path
-	if (config.symlinkPubPaths.length) {
-		allTasks.push(symlinkPubTask.bind(null, config));
-	}
-
-
-	//allTasks.push(symlinkTemplatesTask.bind(config));
-	//allTasks.push(symlinkBootstrapTask.bind(config));
-
-	//console.log(allTasks);
-
-
-	return gulp.series(allTasks);
-}
-
-function bindFuncs(funcList, config) {
-	return funcList.map(function(func) {
-		return func.bind(null, config);
-	});
-}
+function symlinkTemplatesTask(config) {
+	return gulp.src(config.symlinkTemplatesPaths, {
+		base: './'
+	})
+	.pipe(vfs.symlink(config.outTemplates));
+};
 
 function symlinkBootstrapTask() {
 	return gulp.src(['node_modules/bootstrap/dist/**/*.js'], {
