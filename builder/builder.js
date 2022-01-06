@@ -6,6 +6,7 @@ var
 	gulpClean = require('gulp-clean'),
 	gutil = require('gulp-util'),
 	vfs = require('vinyl-fs'),
+	fs = require('fs'),
 	child_process = require('child_process'),
 	webpack = require('webpack'),
 	tfWebpack = require('./webpack');
@@ -36,6 +37,8 @@ function makeTasks(config) {
 
 	allTasks.push(ivyJSBuilderTask.bind(null, config));
 
+	allTasks.push(makeTSConfigTask.bind(null, config));
+
 	// Add webpack task
 	if (Object.keys(config.webpack.entries).length) {
 		allTasks.push(webpackTask.bind(null, config));
@@ -50,7 +53,7 @@ function makeTasks(config) {
 		allTasks.push(symlinkTemplatesTask.bind(null, config));
 	}
 
-	//allTasks.push(symlinkBootstrapTask.bind(config));
+	allTasks.push(symlinkBootstrapTask.bind(null, config));
 
 	return gulp.series(allTasks);
 }
@@ -87,6 +90,23 @@ function symlinkBuildTask(config) {
 		overwrite: false
 	}));
 };
+
+function makeTSConfigTask(config, cb) {
+	fs.writeFile(
+		path.join(config.buildPath, 'tsconfig.json'),
+		JSON.stringify({
+			"compilerOptions": {
+				"noImplicitAny": true,
+				"module": "es6",
+				"target": "es5",
+				"jsx": "react",
+				"allowJs": true,
+				"moduleResolution": "node"
+			}
+		}),
+		cb
+	);
+}
 
 function symlinkBuildNodeModulesTask(config) {
 	var trifle = '/home/uranuz/projects/yar_mkk/trifle';
@@ -150,11 +170,11 @@ function symlinkTemplatesTask(config) {
 	.pipe(vfs.symlink(config.outTemplates));
 };
 
-function symlinkBootstrapTask() {
+function symlinkBootstrapTask(config) {
 	return gulp.src(['node_modules/bootstrap/dist/**/*.js'], {
 		base: 'node_modules/'
 	})
-	.pipe(vfs.symlink(sites.mkk.outPub));
+	.pipe(vfs.symlink(config.outPub));
 };
 
 Object.assign(exports, {

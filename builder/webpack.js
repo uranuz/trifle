@@ -35,6 +35,11 @@ function makeConfig(config) {
 	// Add common rules to pack different kinds of resources
 	var rules = [
 		{
+			test: /\.tsx?$/,
+			use: 'ts-loader',
+			exclude: /node_modules/,
+		},
+		{
 			test: /\.s[ac]ss$/,
 			use: [
 				MiniCssExtractPlugin.loader,
@@ -80,7 +85,13 @@ function makeConfig(config) {
 			// both options are optional
 			filename: '[name].css',
 			chunkFilename: '[id].css',
-		})
+		}),
+		new webpack.NormalModuleReplacementPlugin(
+			/\.ivy$/,
+			function (resource) {
+				resource.request = path.join('buildAux', resource.request + '.js')
+			}
+		)
 	];
 	// Add plugins to resolve dependencies from other libraries
 	addExtLibPlugins(plugins, wpCfg);
@@ -95,6 +106,8 @@ function makeConfig(config) {
 				config.buildAuxPath
 			],
 			extensions: [
+				'.tsx',
+				'.ts',
 				'.js',
 				'.scss'
 			],
