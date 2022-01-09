@@ -99,9 +99,9 @@ function makeTSConfigTask(config, cb) {
 				"noImplicitAny": true,
 				"module": "es6",
 				"target": "es5",
-				"jsx": "react",
 				"allowJs": true,
-				"moduleResolution": "node"
+				"moduleResolution": "node",
+				"baseUrl": config.buildPath,
 			}
 		}),
 		cb
